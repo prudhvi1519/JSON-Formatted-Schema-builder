@@ -6,22 +6,15 @@ import { motion } from 'framer-motion'
 export default function App() {
   const [fields, setFields] = useState<SchemaField[]>([])
 
-  // ✅ Build JSON from fields with empty checks
-  function buildJSON(list: SchemaField[]): any {
-    return list.reduce((acc, f) => {
-      const key = f.name || "" // blank key if empty
-
-      // If no type selected → just leave as empty string
+  // Build JSON with empty‑checks
+  const buildJSON = (list: SchemaField[]): any =>
+    list.reduce((acc, f) => {
+      const key = f.name || ""
       if (!f.type) {
         acc[key] = ""
-        return acc
-      }
-
-      // If nested → recursively build children
-      if (f.type === "nested") {
+      } else if (f.type === "nested") {
         acc[key] = buildJSON(f.children || [])
       } else {
-        // ✅ Map type → sample values
         acc[key] =
           f.type === "string"
             ? "STRING"
@@ -35,15 +28,11 @@ export default function App() {
             ? "OBJECT_ID"
             : ""
       }
-
       return acc
     }, {} as any)
-  }
 
   const handleSubmit = () => {
-    const schema = buildJSON(fields)
-    console.log('Submitting schema:', schema)
-    // TODO: Send to backend
+    console.log('Submitting schema:', buildJSON(fields))
   }
 
   return (
@@ -56,23 +45,19 @@ export default function App() {
           transition={{ duration: 0.3 }}
           className="flex-1 bg-white rounded-lg shadow p-4"
         >
-          <h1 className="text-2xl font-bold mb-4">
-            JSON Schema Builder
-          </h1>
+          <h1 className="text-2xl font-bold mb-4">JSON Schema Builder</h1>
           <SchemaBuilder fields={fields} onChange={setFields} />
         </motion.div>
 
-        {/* Live JSON Preview */}
+        {/* Preview Panel */}
         <motion.div
           initial={{ opacity: 0, x: 10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3 }}
           className="flex-1 bg-white rounded-lg shadow-inner p-4"
         >
-          <h2 className="text-lg font-semibold mb-2">
-            Live JSON Preview
-          </h2>
-          <pre className="bg-gray-50 p-4 rounded border">
+          <h2 className="text-lg font-semibold mb-2">Live JSON Preview</h2>
+          <pre className="bg-gray-50 p-4 rounded border text-sm overflow-x-auto">
             {JSON.stringify(buildJSON(fields), null, 2)}
           </pre>
         </motion.div>

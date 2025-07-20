@@ -6,25 +6,25 @@ import { motion } from 'framer-motion'
 
 interface BuilderProps {
   fields: SchemaField[]
-  onChange: (fields: SchemaField[]) => void
+  onChange: React.Dispatch<React.SetStateAction<SchemaField[]>>
 }
 
-// ✅ Helper: Update a specific field recursively
+// Update a single field recursively
 function updateField(
   list: SchemaField[],
   id: string,
-  fn: (f: SchemaField) => SchemaField
+  updater: (f: SchemaField) => SchemaField
 ): SchemaField[] {
   return list.map(f => {
-    if (f.id === id) return fn(f)
+    if (f.id === id) return updater(f)
     if (f.type === 'nested' && f.children) {
-      return { ...f, children: updateField(f.children, id, fn) }
+      return { ...f, children: updateField(f.children, id, updater) }
     }
     return f
   })
 }
 
-// ✅ Helper: Remove field by ID recursively
+// Remove a field by id recursively
 function removeField(list: SchemaField[], id: string): SchemaField[] {
   return list
     .filter(f => f.id !== id)
@@ -36,13 +36,15 @@ function removeField(list: SchemaField[], id: string): SchemaField[] {
 }
 
 export const SchemaBuilder: FC<BuilderProps> = ({ fields, onChange }) => {
+  // Add a new root field
   const addRoot = () => {
-    onChange([
-      ...fields,
-      { id: nanoid(), name: '', type: '' as any, required: false },
+    onChange(prev => [
+      ...prev,
+      { id: nanoid(), name: '', type: '', required: false }
     ])
   }
 
+  // Render fields recursively
   const renderList = (list: SchemaField[]) =>
     list.map(f => (
       <motion.div
@@ -54,35 +56,32 @@ export const SchemaBuilder: FC<BuilderProps> = ({ fields, onChange }) => {
       >
         <FieldRow
           field={f}
-          onChange={upd =>
-            onChange(
-              updateField(fields, f.id, old => ({ ...old, ...upd }))
+          onChange={upd => {
+            onChange(prev =>
+              updateField(prev, f.id, old => ({ ...old, ...upd }))
             )
-          }
-          onDelete={() => onChange(removeField(fields, f.id))}
+          }}
+          onDelete={() => {
+            onChange(prev => removeField(prev, f.id))
+          }}
         />
 
-        {/* Recursively render children */}
+        {/* Nested children */}
         {f.children && f.children.length > 0 && renderList(f.children)}
 
-        {/* + Child button if nested */}
+        {/* + Child */}
         {f.type === 'nested' && (
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() =>
-              onChange(
-                updateField(fields, f.id, old => ({
+              onChange(prev =>
+                updateField(prev, f.id, old => ({
                   ...old,
                   children: [
                     ...(old.children || []),
-                    {
-                      id: nanoid(),
-                      name: '',
-                      type: '' as any,
-                      required: false,
-                    },
-                  ],
+                    { id: nanoid(), name: '', type: '', required: false }
+                  ]
                 }))
               )
             }
@@ -102,7 +101,7 @@ export const SchemaBuilder: FC<BuilderProps> = ({ fields, onChange }) => {
     >
       {renderList(fields)}
 
-      {/* + Add Field Button */}
+      {/* + Add Field */}
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
