@@ -7,3 +7,4 @@ export interface SchemaField {
   required: boolean
   children?: SchemaField[]
 }
+
